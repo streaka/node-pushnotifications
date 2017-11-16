@@ -1,4 +1,4 @@
-const apn = require('apn');
+const apn = require('node-apn-http2');
 
 const method = 'apn';
 

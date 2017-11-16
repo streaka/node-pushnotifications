@@ -1,6 +1,6 @@
 {
-  "name": "node-pushnotifications",
-  "description": "A cross-platform push service for node.js",
+  "name": "node-pushnotifications-http2",
+  "description": "A cross-platform push service for node.js (Node 8.8.1+)",
   "version": "1.0.18",
   "author": {
     "name": "AppFeel",
@@ -48,13 +48,13 @@
     "url": "https://github.com/appfeel/node-pushnotifications.git"
   },
   "dependencies": {
-    "apn": "^2.1.1",
     "node-adm": "^0.9.1",
+    "node-apn-http2": "^1.0.0",
     "node-gcm": "^0.14.4",
     "wns": "^0.5.3"
   },
   "engines": {
-    "node": ">= 4.6.0"
+    "node": ">= 8.8.1"
   },
   "eslintConfig": {
     "ecmaVersion": 6,
