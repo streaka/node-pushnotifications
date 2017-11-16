@@ -3,7 +3,9 @@ const apn = require('node-apn-http2');
 const method = 'apn';
 
 module.exports = (regIds, data, settings) => {
-    const message = new apn.Notification({
+    const message = new apn.Notification();
+    
+    Object.assign(message, {
         retryLimit: data.retries || -1,
         expiry: data.expiry || ((data.timeToLive || 28 * 86400) + Math.floor(Date.now() / 1000)),
         priority: data.priority === 'normal' ? 5 : 10,
@@ -30,6 +32,7 @@ module.exports = (regIds, data, settings) => {
         collapseId: data.collapseKey,
         mutableContent: data.mutableContent || 0,
     });
+
     const connection = new apn.Provider(settings.apn);
 
     return connection.send(message, regIds)
