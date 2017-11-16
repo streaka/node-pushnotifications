@@ -2,7 +2,7 @@ import path from 'path';
 import { describe, it, before, after } from 'mocha'; // eslint-disable-line import/no-extraneous-dependencies
 import { expect } from 'chai'; // eslint-disable-line import/no-extraneous-dependencies
 import sinon from 'sinon'; // eslint-disable-line import/no-extraneous-dependencies
-import apn from 'apn';
+var apn = require('node-apn-http2'); // eslint-disable-line import/no-extraneous-dependencies
 import PN from '../../src';
 
 const method = 'apn';
