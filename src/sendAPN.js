@@ -1,4 +1,4 @@
-const apn = require('apn');
+const apn = require('node-apn-http2');
 
 const method = 'apn';
 const defaultExpiry = ttl => (typeof ttl === 'number' ? ttl : 28 * 86400) + Math.floor(Date.now() / 1000);

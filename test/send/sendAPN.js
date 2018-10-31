@@ -6,7 +6,7 @@ import sinonChai from 'sinon-chai';
 import dirtyChai from 'dirty-chai';
 import { readFileSync } from 'fs';
 
-import apn from 'apn';
+import apn from 'node-apn-http2';
 import PN from '../../src';
 import APN from '../../src/sendAPN';
 import {

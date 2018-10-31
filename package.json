@@ -1,10 +1,10 @@
 {
-  "name": "node-pushnotifications",
-  "description": "A cross-platform push service for node.js",
-  "version": "1.1.7",
+  "name": "node-pushnotifications-http2",
+  "description": "A cross-platform push service for node.js (Node 8.8.1+)",
+  "version": "1.1.0",
   "author": {
-    "name": "AppFeel",
-    "email": "info@appfeel.com"
+    "name": "Streaka",
+    "email": "info@streaka.com"
   },
   "scripts": {
     "coveralls": "cat ./coverage/lcov.info | coveralls",
@@ -49,7 +49,7 @@
     "url": "https://github.com/appfeel/node-pushnotifications.git"
   },
   "dependencies": {
-    "apn": "^2.2.0",
+    "node-apn-http2": "^1.2.0",
     "node-adm": "^0.9.1",
     "node-gcm": "^1.0.2",
     "web-push": "^3.3.2",

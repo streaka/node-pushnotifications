@@ -1,14 +1,13 @@
 Node Push Notifications
 ========
 
-A node.js module for interfacing with Apple Push Notification, Google Cloud Messaging, Windows Push Notification, Web-Push Notification and Amazon Device Messaging services.
+**WARNING!** This is only for Node 8.8.1+! Do not attempt to use this library with a lower version, as it **will** break.
 
-[![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://npmjs.org/package/node-pushnotifications)
-[![NPM version](http://img.shields.io/npm/v/node-pushnotifications.svg?style=flat)](https://npmjs.org/package/node-pushnotifications)
-[![Downloads](http://img.shields.io/npm/dm/node-pushnotifications.svg?style=flat)](https://npmjs.org/package/node-pushnotifications)
-[![Build Status](http://img.shields.io/travis/appfeel/node-pushnotifications.svg?style=flat)](https://travis-ci.org/appfeel/node-pushnotifications)
-[![Coverage Status](https://coveralls.io/repos/github/appfeel/node-pushnotifications/badge.svg?branch=master)](https://coveralls.io/github/appfeel/node-pushnotifications?branch=master)
-[![Dependencies](https://david-dm.org/appfeel/node-pushnotifications/status.svg)](https://david-dm.org/appfeel/node-pushnotifications)
+A node.js module for interfacing with Apple Push Notification, Google Cloud Messaging, Windows Push Notification and Amazon Device Messaging services.
+
+[![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://npmjs.org/package/node-pushnotifications-http2)
+[![NPM version](http://img.shields.io/npm/v/node-pushnotifications-http2.svg?style=flat)](https://npmjs.org/package/node-pushnotifications-http2)
+[![Downloads](http://img.shields.io/npm/dm/node-pushnotifications-http2.svg?style=flat)](https://npmjs.org/package/node-pushnotifications-http2)
 
 - [Installation](#installation)
 - [Requirements](#requirements)
@@ -25,7 +24,7 @@ A node.js module for interfacing with Apple Push Notification, Google Cloud Mess
 ## Installation
 
 ```bash
-npm install node-pushnotifications --save
+npm install node-pushnotifications-http2 --save
 ```
 
 ## Requirements
