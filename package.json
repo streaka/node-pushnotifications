@@ -1,19 +1,19 @@
 {
   "name": "node-pushnotifications-http2",
   "description": "A cross-platform push service for node.js (Node 8.8.1+)",
-  "version": "1.0.20",
+  "version": "1.1.0",
   "author": {
-    "name": "AppFeel",
-    "email": "info@appfeel.com"
+    "name": "Streaka",
+    "email": "info@streaka.com"
   },
   "scripts": {
     "coveralls": "cat ./coverage/lcov.info | coveralls",
-    "test-cover": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- test/ --compilers jsx:babel-core/register --recursive; opn ./coverage/lcov-report/index.html",
-    "test": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- test/ --compilers jsx:babel-core/register --recursive --report lcovonly",
+    "test-cover": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha test/ -- --require babel-core/register --recursive; opn ./coverage/lcov-report/index.html",
+    "test": "./node_modules/.bin/_mocha test/ --require babel-core/register --recursive",
     "build": "./node_modules/.bin/babel src -d lib",
-    "prepublish": "npm run lint && npm test && npm run build",
-    "lint": "eslint src/**/*.js",
-    "test-alone": "./node_modules/.bin/_mocha test/ --compilers jsx:babel-core/register --recursive -w"
+    "prepare": "npm run lint && npm test && npm run build",
+    "lint": "eslint {src,test}/**/*.js",
+    "release": "release-it"
   },
   "keywords": [
     "notifications",
@@ -36,7 +36,8 @@
     "wphone",
     "windows phone",
     "wns",
-    "mpns"
+    "mpns",
+    "webpush"
   ],
   "main": "index.js",
   "bugs": {
@@ -48,13 +49,33 @@
     "url": "https://github.com/appfeel/node-pushnotifications.git"
   },
   "dependencies": {
+    "node-apn-http2": "^1.2.0",
     "node-adm": "^0.9.1",
-    "node-apn-http2": "^1.0.0",
-    "node-gcm": "^0.14.4",
-    "wns": "^0.5.3"
+    "node-gcm": "^1.0.2",
+    "web-push": "^3.3.2",
+    "wns": "^0.5.4"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0",
+    "chai": "^4.1.2",
+    "coveralls": "^3.0.2",
+    "dirty-chai": "^2.0.1",
+    "eslint": "^5.6.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.1",
+    "eslint-plugin-react": "^7.11.1",
+    "istanbul": "^1.1.0-alpha.1",
+    "mocha": "^5.2.0",
+    "opn-cli": "^3.1.0",
+    "release-it": "^7.6.1",
+    "sinon": "^1.17.6",
+    "sinon-chai": "^3.2.0"
   },
   "engines": {
-    "node": ">= 8.8.1"
+    "node": ">=6.x.x"
   },
   "eslintConfig": {
     "ecmaVersion": 6,
@@ -65,22 +86,6 @@
   },
   "readmeFilename": "README.md",
   "homepage": "https://github.com/appfeel/node-pushnotifications",
-  "devDependencies": {
-    "babel-cli": "^6.16.0",
-    "babel-core": "^6.17.0",
-    "babel-preset-es2015": "^6.16.0",
-    "chai": "^3.5.0",
-    "coveralls": "^2.11.16",
-    "eslint": "^3.8.0",
-    "eslint-config-airbnb": "^12.0.0",
-    "eslint-plugin-import": "^1.16.0",
-    "eslint-plugin-jsx-a11y": "^2.2.3",
-    "eslint-plugin-react": "^6.4.1",
-    "istanbul": "^1.1.0-alpha.1",
-    "mocha": "^3.1.2",
-    "opn-cli": "^3.1.0",
-    "sinon": "^1.17.6"
-  },
   "license": "MIT",
   "contributors": [
     {

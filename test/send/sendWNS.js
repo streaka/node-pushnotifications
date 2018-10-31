@@ -1,8 +1,12 @@
-import { describe, it, before, after } from 'mocha'; // eslint-disable-line import/no-extraneous-dependencies
-import { expect } from 'chai'; // eslint-disable-line import/no-extraneous-dependencies
-import sinon from 'sinon'; // eslint-disable-line import/no-extraneous-dependencies
+/* eslint-env mocha */
+import { expect } from 'chai';
+import sinon from 'sinon';
 import wns from 'wns';
 import PN from '../../src';
+import {
+    sendOkMethodGCM, testPushSuccess,
+    testPushError, testPushException,
+} from '../util';
 
 const method = 'wns';
 const regIds = [
@@ -18,7 +22,7 @@ const data = {
         sender: 'appfeel-test',
     },
 };
-const wnsMethods = [
+const wnsSendTileMethods = [
     'sendTileSquareBlock',
     'sendTileSquareText01',
     'sendTileSquareText02',
@@ -74,22 +78,28 @@ const pn = new PN({
 const fErr = new Error('Forced error');
 const sendWNS = {
     restore: () => {
-        wnsMethods.forEach((wnsMethod) => {
+        wnsSendTileMethods.forEach((wnsMethod) => {
             sendWNS[wnsMethod].restore();
         });
     },
 };
+
+const testSuccess = testPushSuccess(method, regIds);
+const testSuccessGCM = testPushSuccess('gcm', regIds);
+const testError = testPushError(method, regIds, fErr.message);
+const testException = testPushException(fErr.message);
+
 let sendMethod;
 
 function sendOkMethod() {
-    wnsMethods.forEach((wnsMethod) => {
+    wnsSendTileMethods.forEach((wnsMethod) => {
         sendWNS[wnsMethod] = sinon.stub(wns, wnsMethod, (channel, message, options, cb) => {
             expect(channel).to.be.a('string');
             expect(regIds).to.include(channel);
+            expect(message).to.be.an('object');
             expect(message).to.have.deep.property('title', data.title);
             expect(message).to.have.deep.property('body', data.body);
             expect(message).to.have.deep.property('custom', data.custom);
-            expect(message).to.be.an('object');
             cb(null, {});
         });
     });
@@ -97,7 +107,7 @@ function sendOkMethod() {
 }
 
 function sendFailureMethod() {
-    wnsMethods.forEach((wnsMethod) => {
+    wnsSendTileMethods.forEach((wnsMethod) => {
         sendWNS[wnsMethod] = sinon.stub(wns, wnsMethod, (channel, message, options, cb) => {
             cb(null, {
                 innerError: fErr.message,
@@ -108,7 +118,7 @@ function sendFailureMethod() {
 }
 
 function sendErrorMethod() {
-    wnsMethods.forEach((wnsMethod) => {
+    wnsSendTileMethods.forEach((wnsMethod) => {
         sendWNS[wnsMethod] = sinon.stub(wns, wnsMethod, (channel, message, options, cb) => {
             cb(fErr);
         });
@@ -117,7 +127,7 @@ function sendErrorMethod() {
 }
 
 function sendThrowExceptionMethod() {
-    wnsMethods.forEach((wnsMethod) => {
+    wnsSendTileMethods.forEach((wnsMethod) => {
         sendWNS[wnsMethod] = sinon.stub(wns, wnsMethod, () => {
             throw fErr;
         });
@@ -127,25 +137,6 @@ function sendThrowExceptionMethod() {
 
 describe('push-notifications-wns', () => {
     describe('send push notifications successfully', () => {
-        const test = (err, results, done) => {
-            try {
-                expect(err).to.equal(null);
-                results.forEach((result) => {
-                    expect(result.method).to.equal(method);
-                    expect(result.success).to.equal(regIds.length);
-                    expect(result.failure).to.equal(0);
-                    expect(result.message.length).to.equal(regIds.length);
-                    result.message.forEach((message) => {
-                        expect(message).to.have.property('regId');
-                        expect(regIds).to.include(message.regId);
-                    });
-                });
-                done(err);
-            } catch (e) {
-                done(err || e);
-            }
-        };
-
         before(() => {
             sendMethod = sendOkMethod();
         });
@@ -155,39 +146,42 @@ describe('push-notifications-wns', () => {
         });
 
         it('all responses should be successful (callback)', (done) => {
-            pn.send(regIds, data, (err, results) => test(err, results, done));
+            pn.send(regIds, data, (err, results) => testSuccess(err, results, done));
         });
 
         it('all responses should be successful (promise)', (done) => {
             pn.send(regIds, data)
-                .then(results => test(null, results, done))
+                .then(results => testSuccess(null, results, done))
                 .catch(done);
+        });
+
+        describe('sendRaw', () => {
+            before(() => {
+                sendWNS.sendRaw = sinon.stub(wns, 'sendRaw', (channel, message, options, cb) => {
+                    expect(channel).to.be.a('string');
+                    expect(regIds).to.include(channel);
+                    expect(message).to.be.a('string');
+                    expect(message).to.equal(JSON.stringify(data));
+                    cb(null, {});
+                });
+                sendMethod = sendWNS;
+                pn.settings.wns.notificationMethod = 'sendRaw';
+            });
+
+            after(() => {
+                sendMethod.restore();
+                pn.settings.wns.notificationMethod = 'sendTileSquareBlock';
+            });
+
+            it('should send the correct payload as a raw string', (done) => {
+                pn.send(regIds, data)
+                    .then(results => testSuccess(null, results, done))
+                    .catch(done);
+            });
         });
     });
 
     describe('send push notifications failure', () => {
-        const test = (err, results, done) => {
-            try {
-                expect(err).to.equal(null);
-                results.forEach((result) => {
-                    expect(result.method).to.equal(method);
-                    expect(result.success).to.equal(0);
-                    expect(result.failure).to.equal(regIds.length);
-                    expect(result.message.length).to.equal(regIds.length);
-                    result.message.forEach((message) => {
-                        expect(message).to.have.property('regId');
-                        expect(regIds).to.include(message.regId);
-                        expect(message).to.have.property('error');
-                        expect(message.error).to.be.instanceOf(Error);
-                        expect(message.error.message).to.equal(fErr.message);
-                    });
-                });
-                done(err);
-            } catch (e) {
-                done(err || e);
-            }
-        };
-
         before(() => {
             sendMethod = sendFailureMethod();
         });
@@ -197,39 +191,17 @@ describe('push-notifications-wns', () => {
         });
 
         it('all responses should be failed (callback)', (done) => {
-            pn.send(regIds, data, (err, results) => test(err, results, done));
+            pn.send(regIds, data, (err, results) => testError(err, results, done));
         });
 
         it('all responses should be failed (promise)', (done) => {
             pn.send(regIds, data)
-                .then(results => test(null, results, done))
+                .then(results => testError(null, results, done))
                 .catch(done);
         });
     });
 
     describe('send push notifications error', () => {
-        const test = (err, results, done) => {
-            try {
-                expect(err).to.equal(null);
-                results.forEach((result) => {
-                    expect(result.method).to.equal(method);
-                    expect(result.success).to.equal(0);
-                    expect(result.failure).to.equal(regIds.length);
-                    expect(result.message.length).to.equal(regIds.length);
-                    result.message.forEach((message) => {
-                        expect(message).to.have.property('regId');
-                        expect(regIds).to.include(message.regId);
-                        expect(message).to.have.property('error');
-                        expect(message.error).to.be.instanceOf(Error);
-                        expect(message.error.message).to.equal(fErr.message);
-                    });
-                });
-                done(err);
-            } catch (e) {
-                done(err || e);
-            }
-        };
-
         before(() => {
             sendMethod = sendErrorMethod();
         });
@@ -239,28 +211,17 @@ describe('push-notifications-wns', () => {
         });
 
         it('the error should be reported (callback)', (done) => {
-            pn.send(regIds, data, (err, results) => test(err, results, done));
+            pn.send(regIds, data, (err, results) => testError(err, results, done));
         });
 
         it('the error should be reported (promise)', (done) => {
             pn.send(regIds, data)
-                .then(results => test(null, results, done))
-                .catch(err => test(err, undefined, done));
+                .then(results => testError(null, results, done))
+                .catch(err => testError(err, undefined, done));
         });
     });
 
     describe('send push notifications throw exception', () => {
-        const test = (err, results, done) => {
-            try {
-                expect(results).to.equal(undefined);
-                expect(err).to.be.instanceOf(Error);
-                expect(err.message).to.equal(fErr.message);
-                done();
-            } catch (e) {
-                done(err || e);
-            }
-        };
-
         before(() => {
             sendMethod = sendThrowExceptionMethod();
         });
@@ -270,14 +231,37 @@ describe('push-notifications-wns', () => {
         });
 
         it('the exception should be catched (callback)', (done) => {
-            pn.send(regIds, data, (err, results) => test(err, results, done))
+            pn.send(regIds, data, (err, results) => testException(err, results, done))
                 .catch(() => { }); // This is to avoid UnhandledPromiseRejectionWarning
         });
 
         it('the exception should be catched (promise)', (done) => {
             pn.send(regIds, data)
-                .then(results => test(null, results, done))
-                .catch(err => test(err, undefined, done));
+                .then(results => testException(null, results, done))
+                .catch(err => testException(err, undefined, done));
+        });
+    });
+
+    describe('send push notifications successfully using FCM', () => {
+        const pnGCM = new PN({
+            isAlwaysUseFCM: true,
+        });
+        before(() => {
+            sendMethod = sendOkMethodGCM(regIds, data);
+        });
+
+        after(() => {
+            sendMethod.restore();
+        });
+
+        it('all responses should be successful (callback)', (done) => {
+            pnGCM.send(regIds, data, (err, results) => testSuccessGCM(err, results, done));
+        });
+
+        it('all responses should be successful (promise)', (done) => {
+            pnGCM.send(regIds, data)
+                .then(results => testSuccessGCM(null, results, done))
+                .catch(done);
         });
     });
 });

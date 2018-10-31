@@ -1,19 +1,32 @@
 const wns = require('wns');
 
 const method = 'wns';
+const parseErrorMessage = err => (err instanceof Error ? err.message : err);
+const parseError = (err) => {
+    if (err instanceof Error) {
+        return err;
+    }
+    if (err) {
+        return new Error(err);
+    }
+    return null;
+};
+
 let resumed;
 
 function processResponse(err, response, regId) {
-    resumed.success += err || response.innerError ? 0 : 1;
-    resumed.failure += err || response.innerError ? 1 : 0;
+    const error = parseError(err) || parseError(response.innerError);
+    const errorMsg = parseErrorMessage(err) || parseErrorMessage(response.innerError);
+    resumed.success += error ? 0 : 1;
+    resumed.failure += error ? 1 : 0;
     resumed.message.push({
         regId,
-        error: err || (response.innerError ? new Error(response.innerError) : null),
+        error,
+        errorMsg,
     });
 }
 
-
-module.exports = (_regIds, _data, settings) => {
+const sendWNS = (_regIds, _data, settings) => {
     // sendNotifications and sendPromises are inside exports as in this way,
     // successive calls to this module doesn't override previous ones
     let sendPromises;
@@ -41,9 +54,9 @@ module.exports = (_regIds, _data, settings) => {
 
 
     const promises = [];
-    const notificationMethod = settings.wns.notificationMethod;
     const opts = Object.assign({}, settings.wns);
-    const data = Object.assign({}, _data);
+    const { notificationMethod } = opts;
+    const data = notificationMethod === 'sendRaw' ? JSON.stringify(_data) : Object.assign({}, _data);
 
     resumed = {
         method,
@@ -63,20 +76,18 @@ module.exports = (_regIds, _data, settings) => {
     if (opts.accessToken) {
         sendPromises = [];
         const regIds = [..._regIds];
-        promises.push(new Promise((resolve, reject) =>
-            sendNotifications(regIds, notificationMethod, data, opts, err =>
-                (err ? reject(err) : resolve())
-            )
-        ));
+        // eslint-disable-next-line max-len
+        promises.push(new Promise((resolve, reject) => sendNotifications(regIds, notificationMethod, data, opts, err => (err ? reject(err) : resolve()))));
     } else {
-        _regIds.forEach(regId => promises.push(new Promise(resolve =>
-            wns[notificationMethod](regId, data, opts, (err, response) => {
-                processResponse(err, response, regId);
-                resolve();
-            })
-        )));
+        // eslint-disable-next-line max-len
+        _regIds.forEach(regId => promises.push(new Promise(resolve => wns[notificationMethod](regId, data, opts, (err, response) => {
+            processResponse(err, response, regId);
+            resolve();
+        }))));
     }
 
     return Promise.all(promises)
         .then(() => resumed);
 };
+
+module.exports = sendWNS;

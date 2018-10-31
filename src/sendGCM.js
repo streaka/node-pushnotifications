@@ -11,8 +11,10 @@ const sendChunk = (GCMSender, registrationTokens, message, retries) => new Promi
                 success: 0,
                 failure: registrationTokens.length,
                 message: registrationTokens.map(value => ({
+                    originalRegId: value,
                     regId: value,
                     error: err,
+                    errorMsg: err instanceof Error ? err.message : err,
                 })),
             });
         } else if (response && response.results !== undefined) {
@@ -27,11 +29,12 @@ const sendChunk = (GCMSender, registrationTokens, message, retries) => new Promi
                     regIndex += 1;
                     return {
                         messageId: value.message_id,
+                        originalRegId: regToken,
                         regId: value.registration_id || regToken,
                         error: value.error ? new Error(value.error) : null,
+                        errorMsg: value.error ? (value.error.message || value.error) : null,
                     };
-                }
-                ),
+                }),
             });
         } else {
             resolve({
@@ -40,17 +43,19 @@ const sendChunk = (GCMSender, registrationTokens, message, retries) => new Promi
                 success: response.success,
                 failure: response.failure,
                 message: registrationTokens.map(value => ({
+                    originalRegId: value,
                     regId: value,
                     error: new Error('unknown'),
+                    errorMsg: 'unknown',
                 })),
             });
         }
     });
 });
 
-module.exports = (regIds, data, settings) => {
+const sendGCM = (regIds, data, settings) => {
     const opts = Object.assign({}, settings.gcm);
-    const id = opts.id;
+    const { id } = opts;
     delete opts.id;
     const GCMSender = new gcm.Sender(id, opts);
     const promises = [];
@@ -82,11 +87,11 @@ module.exports = (regIds, data, settings) => {
         };
     }
 
-    custom.title = custom.title || data.title || '';
-    custom.message = custom.message || data.body || '';
-    custom.sound = custom.sound || data.sound || undefined;
-    custom.icon = custom.icon || data.icon || undefined;
-    custom.msgcnt = custom.msgcnt || data.badge || undefined;
+    custom.title = custom.title || data.title;
+    custom.message = custom.message || data.body;
+    custom.sound = custom.sound || data.sound;
+    custom.icon = custom.icon || data.icon;
+    custom.msgcnt = custom.msgcnt || data.badge;
     if (opts.phonegap === true && data.contentAvailable) {
         custom['content-available'] = 1;
     }
@@ -120,14 +125,18 @@ module.exports = (regIds, data, settings) => {
                 failure: 0,
                 message: [],
             };
-            for (const result of results) {
+
+            results.forEach((result) => {
                 if (result.multicastId) {
                     resumed.multicastId.push(result.multicastId);
                 }
                 resumed.success += result.success;
                 resumed.failure += result.failure;
                 resumed.message = [...resumed.message, ...result.message];
-            }
+            });
+
             return resumed;
         });
 };
+
+module.exports = sendGCM;

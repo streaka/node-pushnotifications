@@ -2,7 +2,7 @@ const adm = require('node-adm');
 
 const method = 'adm';
 
-module.exports = (regIds, _data, settings) => {
+const sendADM = (regIds, _data, settings) => {
     const resumed = {
         method,
         success: 0,
@@ -12,9 +12,7 @@ module.exports = (regIds, _data, settings) => {
     const promises = [];
     const admSender = new adm.Sender(settings.adm);
     const data = Object.assign({}, _data);
-    const consolidationKey = data.consolidationKey;
-    const expiry = data.expiry;
-    const timeToLive = data.timeToLive;
+    const { consolidationKey, expiry, timeToLive } = data;
 
     delete data.consolidationKey;
     delete data.expiry;
@@ -28,11 +26,14 @@ module.exports = (regIds, _data, settings) => {
 
     regIds.forEach((regId) => {
         admSender.send(message, regId, (err, response) => {
-            resumed.success += err || response.error ? 0 : 1;
-            resumed.failure += err || response.error ? 1 : 0;
+            const errorMsg = err instanceof Error ? err.message : response.error;
+            const error = err || (response.error ? new Error(response.error) : null);
+            resumed.success += error ? 0 : 1;
+            resumed.failure += error ? 1 : 0;
             resumed.message.push({
                 regId,
-                error: err || (response.error ? new Error(response.error) : null),
+                error,
+                errorMsg,
             });
             promises.push(Promise.resolve());
         });
@@ -41,3 +42,5 @@ module.exports = (regIds, _data, settings) => {
     return Promise.all(promises)
         .then(() => resumed);
 };
+
+module.exports = sendADM;

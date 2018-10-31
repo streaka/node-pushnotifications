@@ -9,13 +9,27 @@ A node.js module for interfacing with Apple Push Notification, Google Cloud Mess
 [![NPM version](http://img.shields.io/npm/v/node-pushnotifications-http2.svg?style=flat)](https://npmjs.org/package/node-pushnotifications-http2)
 [![Downloads](http://img.shields.io/npm/dm/node-pushnotifications-http2.svg?style=flat)](https://npmjs.org/package/node-pushnotifications-http2)
 
-**NOTE:** Version 1.x has completely been redesigned to be compatible with new apn 2.x.
+- [Installation](#installation)
+- [Requirements](#requirements)
+- [Features](#features)
+- [Usage](#usage)
+- [GCM](#gcm)
+- [APN](#apn)
+- [WNS](#wns)
+- [ADM](#adm)
+- [Web-Push](#web-push)
+- [Resources](#resources)
+- [LICENSE](#license)
 
 ## Installation
 
 ```bash
 npm install node-pushnotifications-http2 --save
 ```
+
+## Requirements
+
+Node version >= 6.x.x
 
 ## Features
 
@@ -27,14 +41,17 @@ npm install node-pushnotifications-http2 --save
 
 ## Usage 
 
-### 1. Import and setup push module:
+### 1. Import and setup push module
 
 Include the settings for each device type. You should only include the settings for the devices that you expect to have. I.e. if your app is only available for android or for ios, you should only include `gcm` or `apn` respectively.
 
 ```js
+import PushNotifications from 'node-pushnotifications';
+
 const settings = {
     gcm: {
         id: null,
+        phonegap: false, // phonegap compatibility mode, see below (defaults to false)
         ...
     },
     apn: {
@@ -43,6 +60,7 @@ const settings = {
             keyId: 'ABCD',
             teamId: 'EFGH',
         },
+        production: false // true for APN production environment, false for APN sandbox environment,
         ...
     },
     adm: {
@@ -55,9 +73,20 @@ const settings = {
         client_secret: null,
         notificationMethod: 'sendTileSquareBlock',
         ...
-    }
+    },
+    web: {
+        vapidDetails: {
+            subject: '< \'mailto\' Address or URL >',
+            publicKey: '< URL Safe Base64 Encoded Public Key >',
+            privateKey: '< URL Safe Base64 Encoded Private Key >',
+        },
+        gcmAPIKey: 'gcmkey',
+        TTL: 2419200,
+        contentEncoding: 'aes128gcm',
+        headers: {}
+    },
+    isAlwaysUseFCM: false, // true all messages will be sent through node-gcm (which actually uses FCM)
 };
-const PushNotifications = require('node-pushnotifications');
 const push = new PushNotifications(settings);
 ```
 
@@ -65,10 +94,15 @@ const push = new PushNotifications(settings);
 * APN options: see [node-apn](https://github.com/node-apn/node-apn/blob/master/doc/provider.markdown)
 * ADM options: see [node-adm](https://github.com/umano/node-adm)
 * WNS options: see [wns](https://github.com/tjanczuk/wns)
+* Web-push options: see [web-push](https://github.com/web-push-libs/web-push)
 
-*iOS:* It is recomended to use [provider authentication tokens](https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/CommunicatingwithAPNs.html). You need the .p8 certificate that you can obtain in your [account memebership](https://cloud.githubusercontent.com/assets/8225312/20380437/599a767c-aca2-11e6-82bd-3cbfc2feee33.png). You should ask for an *Apple Push Notification Authentication Key (Sandbox & Production)* or *Apple Push Notification service SSL (Sandbox & Production)*. However, you can also use certificates. See [node-apn](https://github.com/node-apn/node-apn/wiki/Preparing-Certificates) to see how to prepare cert.pem and key.pem. 
+- `isAlwaysUseFCM`: use node-gcm to send notifications to GCM (by default), iOS, ADM and WNS.
 
-### 2. Define destination device ID. You can send to multiple devices, independently of platform, creating an array with different destination device IDs.
+*iOS:* It is recommended to use [provider authentication tokens](https://developer.apple.com/library/content/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/CommunicatingwithAPNs.html). You need the .p8 certificate that you can obtain in your [account membership](https://cloud.githubusercontent.com/assets/8225312/20380437/599a767c-aca2-11e6-82bd-3cbfc2feee33.png). You should ask for an *Apple Push Notification Authentication Key (Sandbox & Production)* or *Apple Push Notification service SSL (Sandbox & Production)*. However, you can also use certificates. See [node-apn](https://github.com/node-apn/node-apn/wiki/Preparing-Certificates) to see how to prepare cert.pem and key.pem. 
+
+### 2. Define destination device ID
+
+You can send to multiple devices, independently of platform, creating an array with different destination device IDs.
 
 ```js
 // Single destination
@@ -82,20 +116,25 @@ registrationIds.push('INSERT_OTHER_DEVICE_ID');
 
 *Android:* If you provide more than 1.000 registration tokens, they will automatically be splitted in 1.000 chunks (see [this issue in gcm repo](https://github.com/ToothlessGear/node-gcm/issues/42))
 
-### 3. Create a JSON object with a title and message and send the notification.
+### 3. Send the notification
 
-Both `title` and `body` fields are required (or `alert` for ios). The other fields are optional (see below how the message is created for each device type):
+Create a JSON object with a title and message and send the notification.
 
 ```js
 const data = {
-    title: 'New push notification', // REQUIRED
-    body: 'Powered by AppFeel', // REQUIRED
+    title: 'New push notification', // REQUIRED for Android
+    topic: 'topic', // REQUIRED for iOS (apn and gcm)
+    /* The topic of the notification. When using token-based authentication, specify the bundle ID of the app. 
+     * When using certificate-based authentication, the topic is usually your app's bundle ID.
+     * More details can be found under https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/sending_notification_requests_to_apns
+     */
+    body: 'Powered by AppFeel',
     custom: {
         sender: 'AppFeel',
     },
     priority: 'high', // gcm, apn. Supported values are 'high' or 'normal' (gcm). Will be translated to 10 and 5 for apn. Defaults to 'high'
     collapseKey: '', // gcm for android, used as collapseId in apn
-    contentAvailable: true, // gcm for android
+    contentAvailable: true, // gcm, apn. node-apn will translate true to 1 as required by apn.
     delayWhileIdle: true, // gcm for android
     restrictedPackageName: '', // gcm for android
     dryRun: false, // gcm for android
@@ -104,26 +143,33 @@ const data = {
     color: '', // gcm for android
     clickAction: '', // gcm for android. In ios, category will be used if not supplied
     locKey: '', // gcm, apn
-    bodyLocArgs: '', // gcm, apn
+    locArgs: '', // gcm, apn
     titleLocKey: '', // gcm, apn
     titleLocArgs: '', // gcm, apn
     retries: 1, // gcm, apn
     encoding: '', // apn
     badge: 2, // gcm for ios, apn
     sound: 'ping.aiff', // gcm, apn
-    alert: {}, // apn, will take precedence over title and body
-    // alert: '', // It is also accepted a text message in alert
-    titleLocKey: '', // apn and gcm for ios
-    titleLocArgs: '', // apn and gcm for ios
+    alert: { // apn, will take precedence over title and body
+        title: 'title',
+        body: 'body'
+        // details: https://github.com/node-apn/node-apn/blob/master/doc/notification.markdown#convenience-setters
+    },
+    /* 
+     * A string is also accepted as a payload for alert
+     * Your notification won't appear on ios if alert is empty object
+     * If alert is an empty string the regular 'title' and 'body' will show in Notification
+     */
+    // alert: '', 
     launchImage: '', // apn and gcm for ios
     action: '', // apn and gcm for ios
-    topic: '', // apn and gcm for ios
     category: '', // apn and gcm for ios
-    contentAvailable: '', // apn and gcm for ios
-    mdm: '', // apn and gcm for ios
+    // mdm: '', // apn and gcm for ios. Use this to send Mobile Device Management commands. 
+    // https://developer.apple.com/library/content/documentation/Miscellaneous/Reference/MobileDeviceManagementProtocolRef/3-MDM_Protocol/MDM_Protocol.html
     urlArgs: '', // apn and gcm for ios
     truncateAtWordEnd: true, // apn and gcm for ios
     mutableContent: 0, // apn
+    threadId: '', // apn
     expiry: Math.floor(Date.now() / 1000) + 28 * 86400, // seconds
     timeToLive: 28 * 86400, // if both expiry and timeToLive are given, expiry will take precedency
     headers: [], // wns
@@ -147,7 +193,7 @@ push.send(registrationIds, data)
     .catch((err) => { ... });
 ```
 
-- `err` will be null if all went fine, will return the error otherwise.
+- `err` will be null if all went fine, otherwise will return the error from the respective provider module.
 - `result` will contain an array with the following objects (one object for each device type found in device registration id's):
 
 ```js
@@ -159,21 +205,27 @@ push.send(registrationIds, data)
         failure: 0, // Number of notifications that have been failed to be send.
         message: [{
             messageId: '', // (only for android) String specifying a unique ID for each successfully processed message or undefined if error
-            regId: value, // The registrationId (device token id)
-            error: new Error('unknown'), // If any, there will be an Error object here
+            regId: value, // The current registrationId (device token id). Beware: For Android this may change if Google invalidates the previous device token. Use "originalRegId" if you are interested in when this changed occurs.
+            originalRegId: value, // (only for android) The registrationId that was sent to the push.send() method. Compare this with field "regId" in order to know when the original registrationId (device token id) gets changed.
+            error: new Error('unknown'), // If any, there will be an Error object here for depuration purposes (when possible it will come form source libraries aka apn, node-gcm)
+            errorMsg: 'some error', // If any, will include the error message from the respective provider module
         }],
     },
     {
         method: 'apn',
-        ... // Same structure here
+        ... // Same structure here, except for message.orignalRegId
     },
     {
         method: 'wns',
-        ... // Same structure here
+        ... // Same structure here, except for message.orignalRegId
     },
     {
         method: 'adm',
-        ... // Same structure here
+        ... // Same structure here, except for message.orignalRegId
+    },
+    {
+        method: 'webPush',
+        ... // Same structure here, except for message.orignalRegId
     },
 ]
 ```
@@ -199,11 +251,11 @@ The following parameters are used to create a GCM message. See https://developer
         };
     }
 
-    custom.title = custom.title || data.title || '';
-    custom.message = custom.message || data.body || '';
-    custom.sound = custom.sound || data.sound || undefined;
-    custom.icon = custom.icon || data.icon || undefined;
-    custom.msgcnt = custom.msgcnt || data.badge || undefined;
+    custom.title = custom.title || data.title;
+    custom.message = custom.message || data.body;
+    custom.sound = custom.sound || data.sound;
+    custom.icon = custom.icon || data.icon;
+    custom.msgcnt = custom.msgcnt || data.badge;
     if (opts.phonegap === true && data.contentAvailable) {
         custom['content-available'] = 1;
     }
@@ -300,7 +352,7 @@ The following parameters are used to create an APN message:
     encoding: data.encoding,
     payload: data.custom || {},
     badge: data.badge,
-    sound: data.sound || 'ping.aiff',
+    sound: data.sound,
     alert: data.alert || {
         title: data.title,
         body: data.body,
@@ -325,7 +377,27 @@ The following parameters are used to create an APN message:
 *data is the parameter in `push.send(registrationIds, data)`*
 
 * [See node-apn fields](https://github.com/node-apn/node-apn/blob/master/doc/notification.markdown)
-* **Please note** that `topic` is required ([see node-apn docs](https://github.com/node-apn/node-apn/blob/master/doc/notification.markdown#notificationtopic))
+* **Please note** that `topic` is required ([see node-apn docs](https://github.com/node-apn/node-apn/blob/master/doc/notification.markdown#notificationtopic)). When using token-based authentication, specify the bundle ID of the app. 
+When using certificate-based authentication, the topic is usually your app's bundle ID.
+More details can be found under https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/sending_notification_requests_to_apns
+
+### Silent push notifications
+
+iOS supports silent push notifications which are not displayed to the user but only used to transmit data.
+
+You can send silent push notifications by sending a push notification with normal priority and no sound, badge or alert.
+
+```js
+const silentPushData = {
+    topic: 'yourTopic',
+    contentAvailable: true,
+    priority: 'normal',
+    payload: {
+        yourKey: 'yourValue',
+        ...
+    }
+}
+```
 
 ## WNS
 
@@ -378,9 +450,22 @@ const ADMmesssage = {
 
 * [See node-adm fields](https://github.com/umano/node-adm#usage)
 
+## Web-Push
+
+Data can be passed as a simple string payload. If you do not pass a string, the parameter value will be stringified beforehand.
+Settings are directly forwarded to `webPush.sendNotification`. 
+
+```js
+const payload = typeof data === 'string' ? data : JSON.stringify(data);
+webPush.sendNotification(regId, payload, settings.web);
+```
+
+A working server example implementation can be found at [https://github.com/alex-friedl/webpush-example/blob/master/server/index.js](https://github.com/alex-friedl/webpush-example/blob/master/server/index.js)
 
 ## Resources
 
+- [Crossplatform integration example using this library and a React Native app](https://github.com/alex-friedl/crossplatform-push-notifications-example)
+- [Web-Push client/server example](https://github.com/alex-friedl/webpush-example)
 - [Node Push Notify from alexlds](https://github.com/alexlds/node-push-notify)
 
 ## LICENSE
