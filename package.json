@@ -1,7 +1,7 @@
 {
   "name": "node-pushnotifications-http2",
   "description": "A cross-platform push service for node.js (Node 8.8.1+)",
-  "version": "1.1.8",
+  "version": "1.2.0",
   "author": {
     "name": "Streaka",
     "email": "info@streaka.com"
@@ -11,7 +11,7 @@
     "test-cover": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha test/ -- --require babel-core/register --recursive; opn ./coverage/lcov-report/index.html",
     "test": "./node_modules/.bin/_mocha test/ --require babel-core/register --recursive",
     "build": "./node_modules/.bin/babel src -d lib",
-    "prepare": "npm run lint && npm test && npm run build",
+    "prepare": "npm run lint && npm run build",
     "lint": "eslint {src,test}/**/*.js",
     "release": "release-it"
   },
