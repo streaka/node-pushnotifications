@@ -23,9 +23,11 @@ declare namespace PushNotifications {
         gcm?: {
             /** GCM or FCM token */
             id?: string;
+            phonegap: boolean; // cordova/phonegap compatibility mode
         };
         /** Apple Push Notifications */
         apn?: {
+            hideExperimentalHttp2Warning: boolean; // hide experimental http2 warning
             /** APN Token */
             token?: {
                 /**
