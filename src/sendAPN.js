@@ -20,35 +20,34 @@ class APN {
     }
 
     sendAPN(regIds, data) {
-        const message = new apn.Notification({
-            retryLimit: data.retries || -1,
-            expiry: data.expiry || defaultExpiry(data.timeToLive),
-            priority: data.priority === 'normal' ? 5 : 10,
-            encoding: data.encoding,
-            payload: data.custom || {},
-            badge: data.badge,
-            sound: data.sound,
-            alert: data.alert || {
-                title: data.title,
-                body: data.body,
-                'title-loc-key': data.titleLocKey,
-                'title-loc-args': data.titleLocArgs,
-                'loc-key': data.locKey,
-                // bodyLocArgs is kept for backward compatibility
-                'loc-args': data.locArgs || data.bodyLocArgs,
-                'launch-image': data.launchImage,
-                action: data.action,
-            },
-            topic: data.topic,
-            category: data.category || data.clickAction,
-            contentAvailable: data.contentAvailable,
-            mdm: data.mdm,
-            urlArgs: data.urlArgs,
-            truncateAtWordEnd: data.truncateAtWordEnd,
-            collapseId: data.collapseKey,
-            mutableContent: data.mutableContent || 0,
-            threadId: data.threadId,
-        });
+        const message = new apn.Notification(data.custom || {});
+
+        message.retryLimit = data.retries || -1;
+        message.expiry = data.expiry || defaultExpiry(data.timeToLive);
+        message.priority = data.priority === 'normal' ? 5 : 10;
+        message.encoding = data.encoding;
+        message.badge = data.badge;
+        message.sound = data.sound;
+        message.alert = data.alert || {
+            title: data.title,
+            body: data.body,
+            'title-loc-key': data.titleLocKey,
+            'title-loc-args': data.titleLocArgs,
+            'loc-key': data.locKey,
+            // bodyLocArgs is kept for backward compatibility
+            'loc-args': data.locArgs || data.bodyLocArgs,
+            'launch-image': data.launchImage,
+            action: data.action,
+        };
+        message.topic = data.topic;
+        message.category = data.category || data.clickAction;
+        message.contentAvailable = data.contentAvailable;
+        message.mdm = data.mdm;
+        message.urlArgs = data.urlArgs;
+        message.truncateAtWordEnd = data.truncateAtWordEnd;
+        message.collapseId = data.collapseKey;
+        message.mutableContent = data.mutableContent || 0;
+        message.threadId = data.threadId;
 
         if (!this.connection) {
             return Promise.reject(this.connectionError || new Error('Unkown error: APN connection not configured properly'));
